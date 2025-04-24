@@ -1,0 +1,100 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text File Reader and Writer</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #output { margin-top: 20px; }
+        textarea { width: 100%; height: 200px; }
+
+        /* Rainbow animation for h1 */
+        h1 {
+            background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet);
+            background-size: 400% 100%;
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: rainbow 5s linear infinite;
+        }
+
+        @keyframes rainbow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Just A Simple Notebook.com :p</h1>
+    <label for="fileSelect">Choose a text file:</label>
+    <select id="fileSelect">
+        {% for file in files %}
+            <option value="{{ file }}">file</option>
+        {% endfor %}
+    </select>
+    <button id="readFileBtn">Read File</button>
+    <div id="output"></div>
+
+    <h2>Writting space </h2>
+    <textarea id="textArea"></textarea>
+    <button id="downloadFileBtn">Download File</button>
+
+<!-- Add background music -->
+    <audio controls autoplay loop>
+        <source src="{{ url_for('static', filename='music/Music for an good hour.mp3') }}" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    
+    <script>
+        document.getElementById('readFileBtn').addEventListener('click', async () => {
+            const filename = document.getElementById('fileSelect').value;
+            const outputDiv = document.getElementById('output');
+            const textArea = document.getElementById('textArea');
+            outputDiv.innerHTML = ''; // Clear previous output
+
+            try {
+                const response = await fetch('/read-file', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                outputDiv.innerHTML = `<pre>${data.content}</pre>`;
+                textArea.value = data.content; // Load content into the text area
+            } catch (error) {
+                outputDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        });
+
+        document.getElementById('downloadFileBtn').addEventListener('click', () => {
+            const textArea = document.getElementById('textArea');
+            const filename = document.getElementById('fileSelect').value;
+            const content = textArea.value;
+
+            // Create a Blob from the text content
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+
+            // Create a link element
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename; // Set the filename for the download
+            document.body.appendChild(a); // Append the link to the body
+            a.click(); // Programmatically click the link to trigger the download
+            document.body.removeChild(a); // Remove the link from the document
+            URL.revokeObjectURL(url); // Free up memory
+        });
+    </script>
+</body>
+</html>
